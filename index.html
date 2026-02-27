@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mind Map Builder 🧠</title>
+
+<style>
+body{
+  margin:0;
+  overflow:hidden;
+  font-family:Segoe UI, sans-serif;
+  background:radial-gradient(circle at top,#020617,#000);
+  color:white;
+}
+
+h1{
+  position:absolute;
+  top:10px;
+  left:20px;
+  margin:0;
+  text-shadow:0 0 15px #38bdf8;
+}
+
+.toolbar{
+  position:absolute;
+  top:60px;
+  left:20px;
+  background:rgba(15,23,42,0.8);
+  padding:10px 15px;
+  border-radius:12px;
+  backdrop-filter:blur(10px);
+  box-shadow:0 0 20px rgba(0,0,0,0.5);
+}
+
+button{
+  padding:8px 12px;
+  margin:5px;
+  border:none;
+  border-radius:8px;
+  background:linear-gradient(135deg,#38bdf8,#a78bfa);
+  color:white;
+  font-weight:600;
+  cursor:pointer;
+}
+
+button:hover{
+  transform:scale(1.05);
+}
+
+canvas{
+  display:block;
+}
+</style>
+</head>
+<body>
+
+<h1>🧠 Mind Map Builder</h1>
+
+<div class="toolbar">
+  <button onclick="addNode()">➕ Add Node</button>
+  <button onclick="enableConnect()">🔗 Connect Mode</button>
+  <button onclick="deleteMode()">❌ Delete Mode</button>
+</div>
+
+<canvas id="canvas"></canvas>
+
+<script>
+const canvas = document.getElementById("canvas");
+const ctx = canvas.getContext("2d");
+
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let nodes = [];
+let connections = [];
+let draggingNode = null;
+let offsetX, offsetY;
+let mode = "drag";
+let selectedNode = null;
+
+function addNode(){
+  const text = prompt("Enter idea text:");
+  if(!text) return;
+  nodes.push({
+    x: canvas.width/2 + Math.random()*100 - 50,
+    y: canvas.height/2 + Math.random()*100 - 50,
+    text: text,
+    radius: 40
+  });
+}
+
+function enableConnect(){
+  mode = "connect";
+  selectedNode = null;
+}
+
+function deleteMode(){
+  mode = "delete";
+}
+
+canvas.addEventListener("mousedown", e=>{
+  const rect = canvas.getBoundingClientRect();
+  const mouseX = e.clientX - rect.left;
+  const mouseY = e.clientY - rect.top;
+
+  for(let node of nodes){
+    const dist = Math.hypot(mouseX-node.x, mouseY-node.y);
+    if(dist < node.radius){
+      if(mode === "drag"){
+        draggingNode = node;
+        offsetX = mouseX - node.x;
+        offsetY = mouseY - node.y;
+      }
+      else if(mode === "connect"){
+        if(!selectedNode){
+          selectedNode = node;
+        } else {
+          connections.push({from: selectedNode, to: node});
+          selectedNode = null;
+        }
+      }
+      else if(mode === "delete"){
+        nodes = nodes.filter(n => n !== node);
+        connections = connections.filter(c => c.from !== node && c.to !== node);
+      }
+      return;
+    }
+  }
+});
+
+canvas.addEventListener("mousemove", e=>{
+  if(draggingNode){
+    const rect = canvas.getBoundingClientRect();
+    draggingNode.x = e.clientX - rect.left - offsetX;
+    draggingNode.y = e.clientY - rect.top - offsetY;
+  }
+});
+
+canvas.addEventListener("mouseup", ()=>{
+  draggingNode = null;
+});
+
+function drawConnections(){
+  ctx.strokeStyle = "#38bdf8";
+  ctx.lineWidth = 2;
+  connections.forEach(conn=>{
+    ctx.beginPath();
+    ctx.moveTo(conn.from.x, conn.from.y);
+    ctx.lineTo(conn.to.x, conn.to.y);
+    ctx.stroke();
+  });
+}
+
+function drawNodes(){
+  nodes.forEach(node=>{
+    // Glow effect
+    ctx.beginPath();
+    ctx.arc(node.x, node.y, node.radius, 0, Math.PI*2);
+    ctx.fillStyle = "#1f2937";
+    ctx.shadowColor = "#38bdf8";
+    ctx.shadowBlur = 20;
+    ctx.fill();
+    ctx.shadowBlur = 0;
+
+    // Text
+    ctx.fillStyle = "#e2e8f0";
+    ctx.font = "14px Segoe UI";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(node.text, node.x, node.y);
+  });
+}
+
+function draw(){
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawConnections();
+  drawNodes();
+  requestAnimationFrame(draw);
+}
+
+draw();
+
+window.addEventListener("resize", ()=>{
+  canvas.width = window.innerWidth;
+  canvas.height = window.innerHeight;
+});
+</script>
+
+</body>
+</html>
